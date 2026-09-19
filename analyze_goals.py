@@ -33,15 +33,22 @@ all_games = pd.concat([home_games, away_games])
 # Keep only teams currently in Série A
 all_games = all_games[all_games["team"].isin(current_serie_a_teams)]
 
-# Group by team, calculate the % of their matches that went over 2.5
-over_rate = all_games.groupby("team")["over_2_5"].mean() * 100
-over_rate = over_rate.sort_values(ascending=False)
+# Calculate percentage AND match count in one groupby, using .agg()
+# "mean" of a True/False column gives the % that were True
+# "count" gives how many rows (matches) went into that calculation
+team_stats = all_games.groupby("team")["over_2_5"].agg(["mean", "count"])
+team_stats["over_2_5_pct"] = team_stats["mean"] * 100
+team_stats = team_stats.sort_values("over_2_5_pct", ascending=False)
 
-print(over_rate)
+# Print with both numbers side by side -- this is the whole point:
+# a 53% over rate means something different at 400 matches vs 40
+print(team_stats[["over_2_5_pct", "count"]].rename(
+    columns={"over_2_5_pct": "over_2.5_%", "count": "matches"}
+))
 
-# Bar chart
+# Bar chart -- unchanged, still just the percentage
 plt.figure(figsize=(14, 8))
-over_rate.plot(kind="bar")
+team_stats["over_2_5_pct"].plot(kind="bar")
 plt.title("% of Matches Over 2.5 Total Goals by Team (Brasileirão, current Série A teams)")
 plt.ylabel("% of matches over 2.5 goals")
 plt.xlabel("Team")
